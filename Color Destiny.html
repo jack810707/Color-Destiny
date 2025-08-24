@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>指定顏色轉盤</title>
+<meta charset="UTF-8">
+<style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 100vh;
+        margin: 0;
+        background-color: #f7f9fc;
+        color: #333;
+    }
+    h1 {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    #wheelContainer {
+        position: relative;
+        width: 400px;
+        height: 400px;
+        margin-bottom: 25px;
+    }
+    #wheel {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 8px solid #34495e;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 25px rgba(0,0,0,0.1);
+        will-change: transform;
+    }
+    .segment {
+        width: 50%;
+        height: 50%;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform-origin: 0% 100%;
+    }
+    #pointer {
+        width: 0;
+        height: 0;
+        border-left: 20px solid transparent;
+        border-right: 20px solid transparent;
+        border-top: 35px solid #e74c3c;
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));
+    }
+    #controls {
+        display: flex;
+        gap: 15px;
+    }
+    button {
+        padding: 12px 25px;
+        font-size: 18px;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+        border-radius: 8px;
+        color: white;
+        transition: background-color 0.3s ease, transform 0.1s ease;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    button:active:not(:disabled) {
+        transform: translateY(2px);
+        box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    }
+    button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    #startButton {
+        background-color: #2ecc71;
+    }
+    #startButton:hover:not(:disabled) {
+        background-color: #27ae60;
+    }
+    #stopButton {
+        background-color: #e74c3c;
+    }
+    #stopButton:hover:not(:disabled) {
+        background-color: #c0392b;
+    }
+</style>
+</head>
+<body>
+
+<h1>顏色轉盤</h1>
+<div id="wheelContainer">
+    <div id="pointer"></div>
+    <div id="wheel"></div>
+</div>
+<div id="controls">
+    <button id="startButton">開始轉</button>
+    <button id="stopButton" disabled>按我停止</button>
+</div>
+
+<script>
+    const wheel = document.getElementById('wheel');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+
+    // --- 主要修改區域 START ---
+
+    // 這是您提供的顏色來源陣列
+    const sourceColors = [
+        '#FF2D2D', '#2894FF', '#FFFF37', '#804040', '#FFFFFF',
+        '#8F4586', '#FF5809', '#00A600', '#000000'
+    ];
+
+    // 洗牌演算法 (Fisher-Yates Shuffle)，用來打亂來源陣列的順序
+    for (let i = sourceColors.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [sourceColors[i], sourceColors[j]] = [sourceColors[j], sourceColors[i]];
+    }
+
+    // 從洗牌後的陣列中，取出前8個顏色作為轉盤的顏色
+    const segmentCount = 8;
+    const colors = sourceColors.slice(0, segmentCount);
+
+    // --- 主要修改區域 END ---
+
+    const segmentAngle = 360 / segmentCount;
+    let rotation = 0;
+    let spinAnimation = null;
+    let isSpinning = false;
+    let currentSpeed = 0;
+    const maxSpeed = 18;
+    const acceleration = 0.2;
+    const deceleration = 0.98;
+
+    // 建立轉盤色塊 (這部分程式碼不需變動)
+    for (let i = 0; i < segmentCount; i++) {
+        const segment = document.createElement('div');
+        segment.style.position = 'absolute';
+        segment.style.width = '100%';
+        segment.style.height = '100%';
+        segment.style.backgroundColor = colors[i];
+        // 加上邊框讓白色色塊也能被看見
+        if (colors[i].toUpperCase() === '#FFFFFF') {
+             segment.style.borderRight = '1px solid #ccc';
+        }
+        segment.style.transform = `rotate(${i * segmentAngle}deg)`;
+        segment.style.clipPath = `polygon(50% 50%, 100% 0, 100% 50%)`;
+        wheel.appendChild(segment);
+    }
+    
+    // 動畫與按鈕控制邏輯 (這部分程式碼不需變動)
+    function animate() {
+        if (isSpinning) {
+            if (currentSpeed < maxSpeed) {
+                currentSpeed += acceleration;
+            }
+        } else {
+            currentSpeed *= deceleration;
+            if (currentSpeed < 0.05) {
+                currentSpeed = 0;
+                cancelAnimationFrame(spinAnimation);
+                spinAnimation = null;
+                startButton.disabled = false;
+                stopButton.disabled = true;
+                return;
+            }
+        }
+        rotation = (rotation + currentSpeed) % 360;
+        wheel.style.transform = `rotate(${rotation}deg)`;
+        spinAnimation = requestAnimationFrame(animate);
+    }
+
+    startButton.addEventListener('click', () => {
+        if (spinAnimation) return;
+        isSpinning = true;
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        animate();
+    });
+
+    stopButton.addEventListener('click', () => {
+        isSpinning = false;
+        stopButton.disabled = true;
+    });
+
+</script>
+
+</body>
+</html>
